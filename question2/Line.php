@@ -8,121 +8,94 @@ class Line
     /**
      * @var int
      */
-    public $currentBeetleLevel = 0;
+    public $currentBeetleSides = 0;
     /**
      * @var array
      */
-    public $beetleLevels = [];
-
-    /**
-     * @var int
-     */
-    public $totalRocks = 0;
+    public $beetleSides = [];
 
     /** @var Beetle */
     public $lastBeetle;
 
     /**
-     * Line constructor.
      * @param int $totalRocks
      * @throws Exception
      */
-    public function __construct(int $totalRocks)
+    public function setRocks(int $totalRocks): void
     {
         if ($totalRocks > 4000000000) {
             throw new Exception("Камней больше 4 млрд");
         }
-
-        $this->totalRocks = $totalRocks;
+        $this->beetleSides = [$totalRocks => 1];
+        $this->currentBeetleSides = $totalRocks;
     }
 
+
     /**
-     * @param int $count
+     * @param int $beetlesCount
      * @throws Exception
      */
-    public function addBeetles(int $count)
+    public function addBeetles(int $beetlesCount)
     {
-        if ($count > $this->totalRocks) {
+
+        if ($beetlesCount > $this->currentBeetleSides) {
             throw new InvalidArgumentException('Жуков больше чем камней');
         }
-        for ($i = 0; $i < $count; $i++) {
-            $this->addBeetle();
-        }
 
-    }
+        while ($beetlesCount > 0) {
 
-    /**
-     * @throws Exception
-     */
-    private function addBeetle()
-    {
-        $beetle = new Beetle();
-        $rocks = $this->totalRocks;
-
-        if (!empty($this->beetleLevels)) {
-            $parentBeetle = $this->findMaxPlaceBeetle();
-            $beetle->level = $parentBeetle->level + 1;
-            $rocks = $parentBeetle->getMaxRocks();
-            $parentBeetle->setBeetleToSide($parentBeetle->getRockSide());
-        }
-
-        $beetle = $this->setBeetleSides($beetle, $rocks);
-
-        $this->addBeetleToLevels($beetle);
-        $this->lastBeetle = $beetle;
-    }
-
-    /**
-     * @param Beetle $beetle
-     * @param int $rocks
-     * @return Beetle
-     */
-    private function setBeetleSides(Beetle $beetle, int $rocks): Beetle
-    {
-        $beetle->leftRocks = intdiv($rocks - 1, 2);
-        $beetle->rightRocks = $beetle->leftRocks + ($rocks - 1) % 2;
-        return $beetle;
-    }
-
-    /**
-     * @return Beetle|null
-     * @throws Exception
-     */
-    private function findMaxPlaceBeetle()
-    {
-        if (!isset($this->beetleLevels[$this->currentBeetleLevel])) {
-            throw new Exception('Что то сломалоcь');
-        }
-        /** @var Beetle|null $maxPlaceBeetle */
-        $maxPlaceBeetle = null;
-        /** @var Beetle $beetleItem */
-        foreach ($this->beetleLevels[$this->currentBeetleLevel] as $beetleItem) {
-            if (!is_null($beetleItem->getRockSide())) {
-                if (is_null($maxPlaceBeetle)
-                    || $maxPlaceBeetle->getMaxRocks() < $beetleItem->getMaxRocks()) {
-                    $maxPlaceBeetle = $beetleItem;
-                }
+            $numBeetle = $this->beetleSides[$this->currentBeetleSides];
+            if ($numBeetle > $beetlesCount) {
+                $numBeetle = $beetlesCount;
             }
+
+            $beetle = new Beetle();
+            $beetle->setBeetleSides($this->currentBeetleSides);
+
+            $this->addBeetleToBeetleSides($beetle, $numBeetle);
+            $this->beetleSides[$this->currentBeetleSides] -= $numBeetle;
+            $beetlesCount -= $numBeetle;
+            $this->lastBeetle = $beetle;
+            $this->updateCurrentBeetleSides();
         }
 
-        if (!$maxPlaceBeetle) {
-            unset($this->beetleLevels[$this->currentBeetleLevel]);
-            ++$this->currentBeetleLevel;
-            echo 'level up to ' . $this->currentBeetleLevel . PHP_EOL;
-            return $this->findMaxPlaceBeetle();
-        }
+    }
 
-        return $maxPlaceBeetle;
+    public function displayLastBeetle(): void
+    {
+        echo $this->lastBeetle->leftRocks . ',' . $this->lastBeetle->rightRocks . PHP_EOL;
     }
 
     /**
      * @param Beetle $beetle
+     * @param int $count
      */
-    private function addBeetleToLevels(Beetle $beetle): void
+    private function addBeetleToBeetleSides(Beetle $beetle, int $count): void
     {
-        if (!isset($this->beetleLevels[$beetle->level])) {
-            $this->beetleLevels[$beetle->level] = [];
+        if (!isset($this->beetleSides[$beetle->leftRocks])) {
+            $this->beetleSides[$beetle->leftRocks] = $count;
+        } else {
+            $this->beetleSides[$beetle->leftRocks] += $count;
         }
-        $this->beetleLevels[$beetle->level][] = $beetle;
+
+        if (!isset($this->beetleSides[$beetle->rightRocks])) {
+            $this->beetleSides[$beetle->rightRocks] = $count;
+        } else {
+            $this->beetleSides[$beetle->rightRocks] += $count;
+        }
+    }
+
+
+    /**
+     *
+     */
+    private function updateCurrentBeetleSides(): void
+    {
+        if ($this->beetleSides[$this->currentBeetleSides] > 0) {
+            return;
+        }
+
+        unset ($this->beetleSides[$this->currentBeetleSides]);
+        $this->currentBeetleSides = max(array_keys($this->beetleSides));
     }
 }
