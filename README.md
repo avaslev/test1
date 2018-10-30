@@ -32,3 +32,5 @@ X=8, Y=3 – ответ 1,1
 
 Написать программу вычисления ответа на любом языке.
 
+    docker run --rm -v $(pwd)/question2:/app -w /app php:cli php app.php
+
